@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Windows.Forms;
 
 namespace Kompresja_Powtórek_GUI
 {
@@ -67,6 +68,7 @@ namespace Kompresja_Powtórek_GUI
 
         public Form1()
         {
+
             InitializeComponent();
 
             NewClip += Form1_NewClip;
@@ -253,7 +255,7 @@ namespace Kompresja_Powtórek_GUI
             // Proces FFmpeg
             Process thumbnailProcess = new Process();
             thumbnailProcess.StartInfo.FileName = "cmd.exe";
-            thumbnailProcess.StartInfo.Arguments = $"/C ffmpeg -sseof -0.1 -i \"{inputFile}\" -update true \"{thumbnailFile}\" & timeout -1";
+            thumbnailProcess.StartInfo.Arguments = $"/C ffmpeg -y -i \"{inputFile}\" -frames:v 1 -update true \"{thumbnailFile}\"";
             thumbnailProcess.StartInfo.UseShellExecute = false;
             thumbnailProcess.StartInfo.CreateNoWindow = true;
 
@@ -387,6 +389,8 @@ namespace Kompresja_Powtórek_GUI
             streamWriter.WriteLine(comboBoxResolution.SelectedIndex.ToString());
             streamWriter.WriteLine(comboBoxFrameRate.SelectedIndex.ToString());
             streamWriter.WriteLine(comboBoxEncoder.SelectedIndex.ToString());
+            streamWriter.WriteLine(Application.ColorMode);
+            
 
             streamWriter.Close();
             streamWriter.Dispose();
@@ -407,7 +411,7 @@ namespace Kompresja_Powtórek_GUI
                     if (i == 2) { comboBoxResolution.SelectedIndex = Convert.ToInt32(line); }
                     if (i == 3) { comboBoxFrameRate.SelectedIndex = Convert.ToInt32(line); }
                     if (i == 4) { comboBoxEncoder.SelectedIndex = Convert.ToInt32(line); }
-
+                    if (i == 5) { Application.SetColorMode((SystemColorMode) Convert.ToInt32(line)); }
                     i++;
                 }
 
@@ -418,7 +422,7 @@ namespace Kompresja_Powtórek_GUI
                 UpdateResolution();
                 UpdateFrameRate();
                 UpdateEncoder();
-
+              
             }
         }
 
