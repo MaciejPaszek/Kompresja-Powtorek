@@ -262,7 +262,7 @@
             comboBoxColorMode.AutoCompleteCustomSource.AddRange(new string[] { "Jasny", "Ciemny" });
             comboBoxColorMode.FormattingEnabled = true;
             comboBoxColorMode.Items.AddRange(new object[] { "Jasny", "Ciemny", "Systemowy" });
-            comboBoxColorMode.Location = new Point(105, 3);
+            comboBoxColorMode.Location = new Point(129, 3);
             comboBoxColorMode.Name = "comboBoxColorMode";
             comboBoxColorMode.Size = new Size(121, 23);
             comboBoxColorMode.TabIndex = 8;
@@ -385,7 +385,7 @@
             labelColorMode.Location = new Point(3, 5);
             labelColorMode.Margin = new Padding(3, 5, 3, 0);
             labelColorMode.Name = "labelColorMode";
-            labelColorMode.Size = new Size(96, 15);
+            labelColorMode.Size = new Size(120, 15);
             labelColorMode.TabIndex = 9;
             labelColorMode.Text = "Tryb kolorów";
             // 
@@ -396,13 +396,13 @@
             labelFontSize.Location = new Point(3, 34);
             labelFontSize.Margin = new Padding(3, 5, 3, 0);
             labelFontSize.Name = "labelFontSize";
-            labelFontSize.Size = new Size(96, 15);
+            labelFontSize.Size = new Size(120, 15);
             labelFontSize.TabIndex = 10;
-            labelFontSize.Text = "Rozmiar czcionki";
+            labelFontSize.Text = "Rozmiar czcionki listy";
             // 
             // numericUpDownFontSize
             // 
-            numericUpDownFontSize.Location = new Point(105, 32);
+            numericUpDownFontSize.Location = new Point(129, 32);
             numericUpDownFontSize.Maximum = new decimal(new int[] { 36, 0, 0, 0 });
             numericUpDownFontSize.Minimum = new decimal(new int[] { 8, 0, 0, 0 });
             numericUpDownFontSize.Name = "numericUpDownFontSize";
@@ -438,6 +438,7 @@
             groupBox1.Location = new Point(0, 0);
             groupBox1.Margin = new Padding(10, 5, 10, 10);
             groupBox1.Name = "groupBox1";
+            groupBox1.Padding = new Padding(7);
             groupBox1.Size = new Size(364, 79);
             groupBox1.TabIndex = 3;
             groupBox1.TabStop = false;
@@ -447,11 +448,12 @@
             // 
             richTextBoxConsole.BorderStyle = BorderStyle.None;
             richTextBoxConsole.Dock = DockStyle.Fill;
-            richTextBoxConsole.Font = new Font("Courier New", 9F);
-            richTextBoxConsole.Location = new Point(3, 19);
+            richTextBoxConsole.Font = new Font("Consolas", 9F);
+            richTextBoxConsole.Location = new Point(7, 23);
+            richTextBoxConsole.Margin = new Padding(10);
             richTextBoxConsole.Name = "richTextBoxConsole";
             richTextBoxConsole.ReadOnly = true;
-            richTextBoxConsole.Size = new Size(358, 57);
+            richTextBoxConsole.Size = new Size(350, 49);
             richTextBoxConsole.TabIndex = 0;
             richTextBoxConsole.Text = "";
             // 
@@ -465,7 +467,6 @@
             Name = "Form1";
             Text = "Kompresja Powtórek";
             FormClosing += Form1_FormClosing;
-            Load += Form1_Load;
             groupBoxCompresionSettings.ResumeLayout(false);
             groupBoxCompresionSettings.PerformLayout();
             tableLayoutPanelSettings.ResumeLayout(false);

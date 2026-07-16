@@ -12,57 +12,14 @@ namespace Kompresja_Powtórek_GUI
         // Plik ustawień
         const string settingsFile = "settings.txt";
 
-        //
+        // Czy monitorowanie plików jest aktywne
         private bool isWatcherActive = false;
-
-        // Parametry FFmpeg
-        private static string OutputFolder;
-        private static string Resolution;
-        private static string FrameRate;
-        private static string Encoder;
 
         // Monitorowanie folderu
         FileSystemWatcher FileSystemWatcher;
 
-        //------------------------------
-        // Zdarzenia
-        //------------------------------
-
-        // New Clip Event
-        public event EventHandler<NewClipEventArgs>? NewClip;
-        public class NewClipEventArgs : EventArgs
-        {
-            public string clipName { get; set; }
-        }
-        protected virtual void OnNewClip(NewClipEventArgs e)
-        {
-            NewClip?.Invoke(this, e);
-        }
-
-        // New Thumbnail Event
-        public event EventHandler<NewThumbnailEventArgs>? NewThumbnail;
-        public class NewThumbnailEventArgs : EventArgs
-        {
-            public string clipName { get; set; }
-            public string thumbnailFile { get; set; }
-        }
-        protected virtual void OnNewThumbnail(NewThumbnailEventArgs e)
-        {
-            NewThumbnail?.Invoke(this, e);
-        }
-
-        // Video Progress Event
-        public event EventHandler<NewProgressEventArgs>? NewProgress;
-        public class NewProgressEventArgs : EventArgs
-        {
-            public string clipName { get; set; }
-            public int currentFrame { get; set; }
-            public int frameCount { get; set; }
-        }
-        protected virtual void OnNewProgress(NewProgressEventArgs e)
-        {
-            NewProgress?.Invoke(this, e);
-        }
+        // Klasa FFmpeg
+        FFmpeg FFmpeg = new FFmpeg();
 
         //------------------------------
         // Form1
@@ -72,38 +29,93 @@ namespace Kompresja_Powtórek_GUI
         {
             InitializeComponent();
 
+            InitalizeComboBoxes();
+
+            // Załaduj ustawienia z pliku settings.txt
             LoadSettings();
 
-            NewClip += Form1_NewClip;
-            NewThumbnail += Form1_NewThumbnail;
-            NewProgress += Form1_NewProgress;
+            // Utwóz obiekt klasy FFmpeg i dodaj obsługę zdarzeń
+            FFmpeg.FFmpegError += Form1_FFmpegError;
+            FFmpeg.ConversionStarted += FFmpeg_ConversionStarted;
+            FFmpeg.ThumbnailCreated += Form1_ThumbnailCreated;
+            FFmpeg.ProgressChanged += Form1_ProgressChanged;
+            FFmpeg.VideoCreated += FFmpeg_VideoCreated;
         }
 
-        private void Form1_NewClip(object? sender, NewClipEventArgs e)
+        private void InitalizeComboBoxes()
         {
-            if (labelFileName.InvokeRequired)
-            {
-                labelFileName.Invoke(new Action(() => { labelFileName.Text = e.clipName; }));
-            }
-            else
-            {
-                labelFileName.Text = e.clipName;
-            }
+            comboBoxResolution.SelectedIndex = 2;
+            comboBoxFrameRate.SelectedIndex = 1;
+            comboBoxEncoder.SelectedIndex = 1;
+        }
 
+        private void LoadSettings()
+        {
+            if (File.Exists(settingsFile))
+            {
+                StreamReader streamReader = File.OpenText(settingsFile);
+
+                int i = 0;
+                string line = "";
+
+                while ((line = streamReader.ReadLine()) != null)
+                {
+                    if (i == 0) { textBoxInputFolder.Text = line; }
+                    if (i == 1) { textBoxOutputFolder.Text = line; }
+                    if (i == 2) { comboBoxResolution.SelectedIndex = Convert.ToInt32(line); }
+                    if (i == 3) { comboBoxFrameRate.SelectedIndex = Convert.ToInt32(line); }
+                    if (i == 4) { comboBoxEncoder.SelectedIndex = Convert.ToInt32(line); }
+                    if (i == 5) { comboBoxColorMode.SelectedIndex = Convert.ToInt32(line); }
+                    if (i == 6) { numericUpDownFontSize.Value = Convert.ToInt32(line); }
+                    i++;
+                }
+
+                streamReader.Close();
+                streamReader.Dispose();
+
+                FFmpeg.OutputFolder = textBoxOutputFolder.Text;
+
+                UpdateResolution();
+                UpdateFrameRate();
+                UpdateEncoder();
+                UpdateColorMode();
+                UpdateConsoleFontSize();
+            }
+        }
+
+        private void Form1_FFmpegError(object? sender, FFmpeg.FFmpegErrorEventArgs e)
+        {
             if (richTextBoxConsole.InvokeRequired)
             {
                 richTextBoxConsole.Invoke(new Action(() => {
-                    richTextBoxConsole.Text += e.clipName + Environment.NewLine;
+                    RichTextBoxColor(e.ClipFileName, FontStyle.Bold, Color.Red);
                 }));
             }
             else
             {
-                richTextBoxConsole.Text += e.clipName + Environment.NewLine;
+                RichTextBoxColor(e.ClipFileName, FontStyle.Bold, Color.Red);
+            }
+        }
+
+        private void FFmpeg_ConversionStarted(object? sender, FFmpeg.ConversionStartedEventArgs e)
+        {
+            // Ustaw nazwę nowego klipu 
+            if (labelFileName.InvokeRequired)
+            {
+                labelFileName.Invoke(new Action(() => { labelFileName.Text = e.ClipFileName; }));
+            }
+            else
+            {
+                labelFileName.Text = e.ClipFileName;
             }
 
             if (progressBarOutput.InvokeRequired)
             {
-                progressBarOutput.Invoke(new Action(() => { progressBarOutput.Value = 0; }));
+                progressBarOutput.Invoke(new Action(() =>
+                {
+                    // możliwe, że warto dać też maksimum
+                    progressBarOutput.Value = 0;
+                }));
             }
             else
             {
@@ -111,84 +123,88 @@ namespace Kompresja_Powtórek_GUI
             }
         }
 
-        private void Form1_NewThumbnail(object? sender, NewThumbnailEventArgs e)
+        private void Form1_ThumbnailCreated(object? sender, FFmpeg.ThumbnailCreatedEventArgs e)
         {
-            if (pictureBoxThumbnail.InvokeRequired)
+            if(labelFileName.InvokeRequired)
             {
-                pictureBoxThumbnail.Invoke(new Action(() =>
+                labelFileName.Invoke(new Action(() =>
                 {
-                    pictureBoxThumbnail.Image = new Bitmap(e.thumbnailFile);
+                    labelFileName.Text = e.ClipFileName;
                 }));
             }
             else
             {
-                pictureBoxThumbnail.Image = new Bitmap(e.thumbnailFile);
+                labelFileName.Text = e.ClipFileName;
+            }
+
+            if (pictureBoxThumbnail.InvokeRequired)
+            {
+                pictureBoxThumbnail.Invoke(new Action(() =>
+                {
+                    pictureBoxThumbnail.Image = new Bitmap(e.ThumbnailFilePath);
+                }));
+            }
+            else
+            {
+                pictureBoxThumbnail.Image = new Bitmap(e.ThumbnailFilePath);
             }
 
             if (richTextBoxConsole.InvokeRequired)
             {
                 richTextBoxConsole.Invoke(new Action(() => {
-                    RichTextBoxColor(e.clipName, FontStyle.Bold, Color.Red);
+                    RichTextBoxColor(e.ClipFileName, FontStyle.Bold, Color.Blue);
                 }));
             }
             else
             {
-                RichTextBoxColor(e.clipName, FontStyle.Bold, Color.Red);
+                RichTextBoxColor(e.ClipFileName, FontStyle.Bold, Color.Blue);
             }
         }
 
-        private void RichTextBoxColor(string text, FontStyle fontStyle, Color color)
-        {
-            Regex regex = new Regex(text);
-            Match match = regex.Match(richTextBoxConsole.Text);
-            richTextBoxConsole.Select(match.Index, match.Length);
-            richTextBoxConsole.SelectionFont = new Font(richTextBoxConsole.Font, fontStyle);
-            richTextBoxConsole.SelectionColor = color;
-        }
-
-        private void Form1_NewProgress(object? sender, NewProgressEventArgs e)
+        private void Form1_ProgressChanged(object? sender, FFmpeg.ProgressChangedEventArgs e)
         {
             if (progressBarOutput.InvokeRequired)
             {
                 progressBarOutput.Invoke(new Action(() =>
                 {
-                    progressBarOutput.Maximum = e.frameCount;
-                    progressBarOutput.Value = e.currentFrame;
-
+                    progressBarOutput.Maximum = e.FrameCount;
+                    progressBarOutput.Value = e.Frame;
                 }));
             }
             else
             {
-                progressBarOutput.Maximum = e.frameCount;
-                progressBarOutput.Value = e.currentFrame;
-
-            }
-
-            if(e.currentFrame == e.frameCount)
-            {
-                if (richTextBoxConsole.InvokeRequired)
-                {
-                    richTextBoxConsole.Invoke(new Action(() => {
-                        RichTextBoxColor(e.clipName, FontStyle.Bold, Color.Green);
-                    }));
-                }
-                else
-                {
-                    RichTextBoxColor(e.clipName, FontStyle.Bold, Color.Green);
-                }
+                progressBarOutput.Maximum = e.FrameCount;
+                progressBarOutput.Value = e.Frame;
             }
         }
 
-
-
-        private void Form1_Load(object sender, EventArgs e)
+        private void FFmpeg_VideoCreated(object? sender, FFmpeg.VideoCreatedEventArgs e)
         {
-            InitalizeComboBoxes();
-        }
+            if (progressBarOutput.InvokeRequired)
+            {
+                progressBarOutput.Invoke(new Action(() =>
+                {
+                    progressBarOutput.Maximum = e.FrameCount;
+                    progressBarOutput.Value = e.FrameCount;
+                }));
+            }
+            else
+            {
+                progressBarOutput.Maximum = e.FrameCount;
+                progressBarOutput.Value = e.FrameCount;
+            }
 
-        //------------------------------
-        // Metody Zdarzeń
-        //------------------------------
+            if (richTextBoxConsole.InvokeRequired)
+            {
+                richTextBoxConsole.Invoke(new Action(() => {
+                    RichTextBoxColor(e.ClipFileName, FontStyle.Bold, Color.Green);
+                }));
+            }
+            else
+            {
+                RichTextBoxColor(e.ClipFileName, FontStyle.Bold, Color.Green);
+            }
+        }
 
         private void buttonActivate_Click(object sender, EventArgs e)
         {
@@ -210,8 +226,6 @@ namespace Kompresja_Powtórek_GUI
 
                 buttonActivate.Text = "Zatrzymaj";
                 isWatcherActive = true;
-
-
             }
             else
             {
@@ -228,26 +242,41 @@ namespace Kompresja_Powtórek_GUI
             }
         }
 
-        private void InitalizeComboBoxes()
-        {
-            comboBoxResolution.SelectedIndex = 2;
-            comboBoxFrameRate.SelectedIndex = 1;
-            comboBoxEncoder.SelectedIndex = 1;
-        }
-
         private bool InitalizeFileSystemWatcher()
         {
+            // Walidacja pola InputFolder
             if (textBoxInputFolder.Text == null || textBoxInputFolder.Text == string.Empty)
             {
                 MessageBox.Show("Nie określono folderu wejściowego.", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
 
+            if (!Directory.Exists(textBoxInputFolder.Text))
+            {
+                MessageBox.Show($"Folder wejściowy {textBoxInputFolder.Text} nie istnieje.", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            // Walidacja pola OutputFolder
+            if (textBoxOutputFolder.Text == null || textBoxOutputFolder.Text == string.Empty)
+            {
+                MessageBox.Show("Nie określono folderu wyjściowego.", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (!Directory.Exists(textBoxOutputFolder.Text))
+            {
+                MessageBox.Show($"Folder wyjściowy {textBoxInputFolder.Text} nie istnieje.", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            // Wyłącz poprzedniego FileSystemWatchera
             if (FileSystemWatcher != null)
             {
                 FileSystemWatcher.Dispose();
             }
 
+            // Nowy FileSystemWatcher
             FileSystemWatcher = new FileSystemWatcher(textBoxInputFolder.Text);
             FileSystemWatcher.Created += FileSystemWatcher_Created;
             FileSystemWatcher.Filter = "*.mkv";
@@ -257,276 +286,59 @@ namespace Kompresja_Powtórek_GUI
             return true;
         }
 
+        /// <summary>
+        /// Obsługa zdarzenia utworzenia nowego pliku klipu
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void FileSystemWatcher_Created(object sender, FileSystemEventArgs e)
         {
-            // Zapal Event NewClip
-            NewClipEventArgs newClipEventArgs = new NewClipEventArgs();
-            newClipEventArgs.clipName = e.Name;
-            OnNewClip(newClipEventArgs);
-
-            // Nazwa nowego pliku
-            string inputFile = e.FullPath;
-
-            if (e.Name == null)
+            // Dodaj plik na listę RichText
+            if (richTextBoxConsole.InvokeRequired)
             {
-                return;
-            }
-
-            // Długość nazwy pliku zakończonej ".mkv"
-            int nameLength = e.Name.Length;
-
-            // Nazwa pliku po zmianie rozszerzenia na ".mp4"
-            string inputFileName = e.Name.Substring(0, nameLength - 4);
-
-            string outputFile = $"{OutputFolder}\\{inputFileName}.mp4";
-            string thumbnailFile = $"{OutputFolder}\\{inputFileName}.png";
-
-            FFmpegThumbnail(inputFile, thumbnailFile);
-
-            // Zapal Event Thumbnail
-            NewThumbnailEventArgs newThumbnailEventArgs = new NewThumbnailEventArgs();
-            newThumbnailEventArgs.thumbnailFile = thumbnailFile;
-            newThumbnailEventArgs.clipName = e.Name;
-            OnNewThumbnail(newThumbnailEventArgs);
-
-            // Wyznacz liczbę klatek
-            int frameCount = FFprobeCountFrames(inputFile);
-
-            FFmpegVideo(inputFile, outputFile, Resolution, FrameRate, Encoder, frameCount);
-
-            // Zapal Event Progress
-            NewProgressEventArgs newProgressEventArgs = new NewProgressEventArgs();
-            newProgressEventArgs.currentFrame = frameCount;
-            newProgressEventArgs.frameCount = frameCount;
-            newProgressEventArgs.clipName = e.Name;
-            OnNewProgress(newProgressEventArgs);
-        }
-
-        void FFmpegThumbnail(string inputFile, string thumbnailFile)
-        {
-            // Proces FFmpeg
-            Process thumbnailProcess = new Process();
-            thumbnailProcess.StartInfo.FileName = "cmd.exe";
-            thumbnailProcess.StartInfo.Arguments = $"/C ffmpeg -y -i \"{inputFile}\" -frames:v 1 -update true \"{thumbnailFile}\"";
-            thumbnailProcess.StartInfo.UseShellExecute = false;
-            thumbnailProcess.StartInfo.CreateNoWindow = true;
-
-            // Rozpoczęcie procesu
-            thumbnailProcess.Start();
-
-            // OCzekiwanie na zakończenie procesu
-            thumbnailProcess.WaitForExit();
-            thumbnailProcess.Close();
-        }
-        private int FFprobeCountFrames(string inputFile)
-        {
-            // Proces FFmpeg
-            Process countProcess = new Process();
-            countProcess.StartInfo.FileName = "cmd.exe";
-            countProcess.StartInfo.Arguments = $"/C ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 \"{inputFile}\"";
-            countProcess.StartInfo.UseShellExecute = false;
-            countProcess.StartInfo.CreateNoWindow = true;
-            countProcess.StartInfo.RedirectStandardOutput = true;
-
-            // Rozpoczęcie procesu
-            countProcess.Start();
-
-            string? frameCount = countProcess.StandardOutput.ReadLine();
-
-            // Oczekiwanie na zakończenie procesu
-            countProcess.WaitForExit();
-            countProcess.Close();
-
-            return Convert.ToInt32(frameCount);
-        }
-        private void FFmpegVideo(string inputFile, string outputFile, string resolution, string frameRate, string encoder, int frameCount)
-        {
-            //progressBarOutput.Value = 0;
-
-            // Proces FFmpeg
-            Process videoProcess = new Process();
-            videoProcess.StartInfo.FileName = "cmd.exe";
-            videoProcess.StartInfo.Arguments = $"/C ffmpeg -y -progress pipe:1 -i \"{inputFile}\" -r {frameRate} -s {resolution} -c:v {encoder} -c:a copy \"{outputFile}\"";
-            videoProcess.StartInfo.UseShellExecute = false;
-            videoProcess.StartInfo.CreateNoWindow = true;
-            videoProcess.StartInfo.RedirectStandardOutput = true;
-
-            // Rozpoczęcie procesu
-            videoProcess.Start();
-
-            string? line;
-
-            while ((line = videoProcess.StandardOutput.ReadLine()) != null)
-            {
-                string[] strings = line.Split('=');
-                if (strings.Length > 1)
-                {
-                    string name = strings[0];
-                    string value = strings[1];
-
-                    if (name == "frame")
+                richTextBoxConsole.Invoke(new Action(() => {
+                    if (richTextBoxConsole.Text == string.Empty)
                     {
-                        int currentFrame = Convert.ToInt32(value);
-
-                        // Zapal Event Progress
-                        NewProgressEventArgs newProgressEventArgs = new NewProgressEventArgs();
-                        newProgressEventArgs.currentFrame = currentFrame;
-                        newProgressEventArgs.frameCount = frameCount;
-                        OnNewProgress(newProgressEventArgs);
+                        richTextBoxConsole.AppendText(e.Name);
                     }
-                }
+                    else
+                    {
+                        richTextBoxConsole.AppendText(Environment.NewLine + e.Name);
+                    }
+                    RichTextBoxColor(e.Name, FontStyle.Regular, Color.Gray);
+                    richTextBoxConsole.ScrollToCaret();
+                }));
             }
-
-            // Oczekiwanie na zakończenie procesu
-            videoProcess.WaitForExit();
-            videoProcess.Close();
-        }
-
-        private void UpdateResolution()
-        {
-            string selectedItemString = comboBoxResolution.SelectedItem.ToString();
-
-            string[] strings = selectedItemString.Split('p');
-
-            int height = Convert.ToInt32(strings[0]);
-            int width = height * 16 / 9;
-
-            Resolution = $"{width}x{height}";
-        }
-
-        private void UpdateFrameRate()
-        {
-            FrameRate = comboBoxFrameRate.SelectedItem.ToString();
-        }
-
-        private void UpdateEncoder()
-        {
-            string selectedItemString = comboBoxEncoder.SelectedItem.ToString();
-
-            if (selectedItemString == "CPU")
+            else
             {
-                Encoder = "libx264";
-                return;
-            }
-
-            if (selectedItemString == "GPU")
-            {
-                Encoder = "h264_nvenc";
-                return;
-            }
-        }
-
-        private void UpdateColorMode()
-        {
-            if (comboBoxColorMode.SelectedIndex == 0)
-            {
-                Application.SetColorMode(SystemColorMode.Classic);
-                return;
-            }
-
-            if (comboBoxColorMode.SelectedIndex == 1)
-            {
-                Application.SetColorMode(SystemColorMode.Dark);
-                return;
-            }
-
-            if (comboBoxColorMode.SelectedIndex == 2)
-            {
-                Application.SetColorMode(SystemColorMode.System);
-                return;
-            }
-        }
-
-        private void UpdateControlsFontSize(Control.ControlCollection controlCollection)
-        {
-            foreach (Control control in controlCollection)
-            {
-                // Odśwież
-                control.Font = new Font(control.Font.FontFamily, (float) numericUpDownFontSize.Value, control.Font.Style);
-
-                // Sprawdź, czy kontrolka ma dzieci
-                if (control.Controls.Count > 0)
+                if (richTextBoxConsole.Text == string.Empty)
                 {
-                    UpdateControlsFontSize(control.Controls);
+                    richTextBoxConsole.AppendText(e.Name);
                 }
-            }
-        }
-
-        private void comboBoxResolution_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            UpdateResolution();
-        }
-
-        private void comboBoxFrameRate_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            UpdateFrameRate();
-        }
-
-        private void comboBoxEncoder_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            UpdateEncoder();
-        }
-
-        private void comboBoxColorMode_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (comboBoxColorMode.IsHandleCreated)
-            {
-                MessageBox.Show("Uruchom ponownie, aby zastosować zmiany.", "Tryb kolorów", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-
-        private void SaveSettings()
-        {
-            StreamWriter streamWriter = File.CreateText(settingsFile);
-
-            streamWriter.WriteLine(textBoxInputFolder.Text);
-            streamWriter.WriteLine(textBoxOutputFolder.Text);
-            streamWriter.WriteLine(comboBoxResolution.SelectedIndex.ToString());
-            streamWriter.WriteLine(comboBoxFrameRate.SelectedIndex.ToString());
-            streamWriter.WriteLine(comboBoxEncoder.SelectedIndex.ToString());
-            streamWriter.WriteLine(comboBoxColorMode.SelectedIndex.ToString());
-
-            streamWriter.Close();
-            streamWriter.Dispose();
-        }
-        private void LoadSettings()
-        {
-            if (File.Exists(settingsFile))
-            {
-                StreamReader streamReader = File.OpenText(settingsFile);
-
-                int i = 0;
-                string line = "";
-
-                while ((line = streamReader.ReadLine()) != null)
+                else
                 {
-                    if (i == 0) { textBoxInputFolder.Text = line; }
-                    if (i == 1) { textBoxOutputFolder.Text = line; }
-                    if (i == 2) { comboBoxResolution.SelectedIndex = Convert.ToInt32(line); }
-                    if (i == 3) { comboBoxFrameRate.SelectedIndex = Convert.ToInt32(line); }
-                    if (i == 4) { comboBoxEncoder.SelectedIndex = Convert.ToInt32(line); }
-                    if (i == 5) { comboBoxColorMode.SelectedIndex = Convert.ToInt32(line); }
-                    i++;
+                    richTextBoxConsole.AppendText(Environment.NewLine + e.Name);
                 }
-
-                streamReader.Close();
-                streamReader.Dispose();
-
-                OutputFolder = textBoxOutputFolder.Text;
-
-                UpdateResolution();
-                UpdateFrameRate();
-                UpdateEncoder();
-                UpdateColorMode();
-                UpdateControlsFontSize(this.Controls);
+                RichTextBoxColor(e.Name, FontStyle.Regular, Color.Gray);
+                richTextBoxConsole.ScrollToCaret();
             }
+
+            // Dodaj plik do kolejki FFMpeg
+            Task AddClipTask = new Task(() => FFmpeg.AddClip(e.FullPath, e.Name));
+            AddClipTask.Start();
+
+            return;
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            SaveSettings();
-        }
+        //------------------------------
+        // Metody Zdarzeń
+        //------------------------------
 
+        /// <summary>
+        /// Wybierz folder wejściowy lub wyjświowy
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void buttonFolder_Click(object sender, EventArgs e)
         {
             Button button = (Button)sender;
@@ -556,12 +368,149 @@ namespace Kompresja_Powtórek_GUI
 
         private void textBoxOutputFolder_TextChanged(object sender, EventArgs e)
         {
-            OutputFolder = textBoxOutputFolder.Text;
+            FFmpeg.OutputFolder = textBoxOutputFolder.Text;
+        }
+
+        private void comboBoxResolution_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateResolution();
+        }
+
+        private void comboBoxFrameRate_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateFrameRate();
+        }
+
+        private void comboBoxEncoder_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateEncoder();
+        }
+
+        private void comboBoxColorMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBoxColorMode.IsHandleCreated)
+            {
+                MessageBox.Show("Uruchom ponownie, aby zastosować zmiany.", "Tryb kolorów", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         private void numericUpDownFontSize_ValueChanged(object sender, EventArgs e)
         {
-            UpdateControlsFontSize(this.Controls);
+            UpdateConsoleFontSize();
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            SaveSettings();
+        }
+
+        /*******************************************************
+         * Funkcje pomocnicze 
+         *******************************************************/
+
+        /// <summary>
+        /// Przelicza wysokość klatki na szerokość
+        /// </summary>
+        private void UpdateResolution()
+        {
+            string selectedItemString = comboBoxResolution.SelectedItem.ToString();
+
+            string[] strings = selectedItemString.Split('p');
+
+            int height = Convert.ToInt32(strings[0]);
+            int width = height * 16 / 9;
+
+            FFmpeg.ResolutionName = selectedItemString;
+            FFmpeg.Resolution = $"{width}x{height}";
+        }
+
+        /// <summary>
+        /// Nadpisuje FPS
+        /// </summary>
+        private void UpdateFrameRate()
+        {
+            FFmpeg.FrameRate = comboBoxFrameRate.SelectedItem.ToString();
+        }
+
+        /// <summary>
+        /// Nadpisuje enkoder
+        /// </summary>
+        private void UpdateEncoder()
+        {
+            string selectedItemString = comboBoxEncoder.SelectedItem.ToString();
+
+            if (selectedItemString == "CPU")
+            {
+                FFmpeg.Encoder = "libx264";
+                return;
+            }
+
+            if (selectedItemString == "GPU")
+            {
+                FFmpeg.Encoder = "h264_nvenc";
+                return;
+            }
+        }
+
+        void UpdateConsoleFontSize()
+        {
+            richTextBoxConsole.Font = new Font(richTextBoxConsole.Font.FontFamily, (float)numericUpDownFontSize.Value, richTextBoxConsole.Font.Style);
+        }
+
+        /// <summary>
+        /// Nadpisuje tryb kolorów
+        /// </summary>
+        private void UpdateColorMode()
+        {
+            if (comboBoxColorMode.SelectedIndex == 0)
+            {
+                Application.SetColorMode(SystemColorMode.Classic);
+                return;
+            }
+
+            if (comboBoxColorMode.SelectedIndex == 1)
+            {
+                Application.SetColorMode(SystemColorMode.Dark);
+                return;
+            }
+
+            if (comboBoxColorMode.SelectedIndex == 2)
+            {
+                Application.SetColorMode(SystemColorMode.System);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Znajdź wyrażenie w richtextbox i zmień jego kolor
+        /// </summary>
+        private void RichTextBoxColor(string text, FontStyle fontStyle, Color color)
+        {
+            Regex regex = new Regex(text);
+            Match match = regex.Match(richTextBoxConsole.Text);
+
+            if (match.Success)
+            {
+                richTextBoxConsole.Select(match.Index, match.Length);
+                richTextBoxConsole.SelectionFont = new Font(richTextBoxConsole.Font, fontStyle);
+                richTextBoxConsole.SelectionColor = color;
+            }
+        }
+
+        private void SaveSettings()
+        {
+            StreamWriter streamWriter = File.CreateText(settingsFile);
+
+            streamWriter.WriteLine(textBoxInputFolder.Text);
+            streamWriter.WriteLine(textBoxOutputFolder.Text);
+            streamWriter.WriteLine(comboBoxResolution.SelectedIndex.ToString());
+            streamWriter.WriteLine(comboBoxFrameRate.SelectedIndex.ToString());
+            streamWriter.WriteLine(comboBoxEncoder.SelectedIndex.ToString());
+            streamWriter.WriteLine(comboBoxColorMode.SelectedIndex.ToString());
+            streamWriter.WriteLine(numericUpDownFontSize.Value.ToString());
+
+            streamWriter.Close();
+            streamWriter.Dispose();
         }
     }
 }
