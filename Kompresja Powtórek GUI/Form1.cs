@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Windows.Forms;
+using System.Text.RegularExpressions;
 
 namespace Kompresja_Powtórek_GUI
 {
@@ -43,6 +43,7 @@ namespace Kompresja_Powtórek_GUI
         public event EventHandler<NewThumbnailEventArgs>? NewThumbnail;
         public class NewThumbnailEventArgs : EventArgs
         {
+            public string clipName { get; set; }
             public string thumbnailFile { get; set; }
         }
         protected virtual void OnNewThumbnail(NewThumbnailEventArgs e)
@@ -54,6 +55,7 @@ namespace Kompresja_Powtórek_GUI
         public event EventHandler<NewProgressEventArgs>? NewProgress;
         public class NewProgressEventArgs : EventArgs
         {
+            public string clipName { get; set; }
             public int currentFrame { get; set; }
             public int frameCount { get; set; }
         }
@@ -68,8 +70,9 @@ namespace Kompresja_Powtórek_GUI
 
         public Form1()
         {
-
             InitializeComponent();
+
+            LoadSettings();
 
             NewClip += Form1_NewClip;
             NewThumbnail += Form1_NewThumbnail;
@@ -87,6 +90,17 @@ namespace Kompresja_Powtórek_GUI
                 labelFileName.Text = e.clipName;
             }
 
+            if (richTextBoxConsole.InvokeRequired)
+            {
+                richTextBoxConsole.Invoke(new Action(() => {
+                    richTextBoxConsole.Text += e.clipName + Environment.NewLine;
+                }));
+            }
+            else
+            {
+                richTextBoxConsole.Text += e.clipName + Environment.NewLine;
+            }
+
             if (progressBarOutput.InvokeRequired)
             {
                 progressBarOutput.Invoke(new Action(() => { progressBarOutput.Value = 0; }));
@@ -99,41 +113,77 @@ namespace Kompresja_Powtórek_GUI
 
         private void Form1_NewThumbnail(object? sender, NewThumbnailEventArgs e)
         {
-
             if (pictureBoxThumbnail.InvokeRequired)
             {
-                pictureBoxThumbnail.Invoke(new Action(() => {
-                    pictureBoxThumbnail.Image = new Bitmap(e.thumbnailFile); 
+                pictureBoxThumbnail.Invoke(new Action(() =>
+                {
+                    pictureBoxThumbnail.Image = new Bitmap(e.thumbnailFile);
                 }));
             }
             else
             {
                 pictureBoxThumbnail.Image = new Bitmap(e.thumbnailFile);
             }
+
+            if (richTextBoxConsole.InvokeRequired)
+            {
+                richTextBoxConsole.Invoke(new Action(() => {
+                    RichTextBoxColor(e.clipName, FontStyle.Bold, Color.Red);
+                }));
+            }
+            else
+            {
+                RichTextBoxColor(e.clipName, FontStyle.Bold, Color.Red);
+            }
+        }
+
+        private void RichTextBoxColor(string text, FontStyle fontStyle, Color color)
+        {
+            Regex regex = new Regex(text);
+            Match match = regex.Match(richTextBoxConsole.Text);
+            richTextBoxConsole.Select(match.Index, match.Length);
+            richTextBoxConsole.SelectionFont = new Font(richTextBoxConsole.Font, fontStyle);
+            richTextBoxConsole.SelectionColor = color;
         }
 
         private void Form1_NewProgress(object? sender, NewProgressEventArgs e)
         {
             if (progressBarOutput.InvokeRequired)
             {
-                progressBarOutput.Invoke(new Action(() => {
+                progressBarOutput.Invoke(new Action(() =>
+                {
                     progressBarOutput.Maximum = e.frameCount;
                     progressBarOutput.Value = e.currentFrame;
-                    
+
                 }));
             }
             else
             {
                 progressBarOutput.Maximum = e.frameCount;
                 progressBarOutput.Value = e.currentFrame;
-                
+
+            }
+
+            if(e.currentFrame == e.frameCount)
+            {
+                if (richTextBoxConsole.InvokeRequired)
+                {
+                    richTextBoxConsole.Invoke(new Action(() => {
+                        RichTextBoxColor(e.clipName, FontStyle.Bold, Color.Green);
+                    }));
+                }
+                else
+                {
+                    RichTextBoxColor(e.clipName, FontStyle.Bold, Color.Green);
+                }
             }
         }
+
+
 
         private void Form1_Load(object sender, EventArgs e)
         {
             InitalizeComboBoxes();
-            LoadSettings();
         }
 
         //------------------------------
@@ -193,7 +243,7 @@ namespace Kompresja_Powtórek_GUI
                 return false;
             }
 
-            if(FileSystemWatcher!= null)
+            if (FileSystemWatcher != null)
             {
                 FileSystemWatcher.Dispose();
             }
@@ -236,17 +286,19 @@ namespace Kompresja_Powtórek_GUI
             // Zapal Event Thumbnail
             NewThumbnailEventArgs newThumbnailEventArgs = new NewThumbnailEventArgs();
             newThumbnailEventArgs.thumbnailFile = thumbnailFile;
+            newThumbnailEventArgs.clipName = e.Name;
             OnNewThumbnail(newThumbnailEventArgs);
 
             // Wyznacz liczbę klatek
             int frameCount = FFprobeCountFrames(inputFile);
 
             FFmpegVideo(inputFile, outputFile, Resolution, FrameRate, Encoder, frameCount);
-            
+
             // Zapal Event Progress
             NewProgressEventArgs newProgressEventArgs = new NewProgressEventArgs();
             newProgressEventArgs.currentFrame = frameCount;
             newProgressEventArgs.frameCount = frameCount;
+            newProgressEventArgs.clipName = e.Name;
             OnNewProgress(newProgressEventArgs);
         }
 
@@ -306,12 +358,13 @@ namespace Kompresja_Powtórek_GUI
 
             while ((line = videoProcess.StandardOutput.ReadLine()) != null)
             {
-                string[] strings = line.Split('='); 
-                if(strings.Length > 1) {
+                string[] strings = line.Split('=');
+                if (strings.Length > 1)
+                {
                     string name = strings[0];
                     string value = strings[1];
 
-                    if(name == "frame")
+                    if (name == "frame")
                     {
                         int currentFrame = Convert.ToInt32(value);
 
@@ -327,8 +380,6 @@ namespace Kompresja_Powtórek_GUI
             // Oczekiwanie na zakończenie procesu
             videoProcess.WaitForExit();
             videoProcess.Close();
-
-            //progressBarOutput.Value = 100;
         }
 
         private void UpdateResolution()
@@ -365,6 +416,42 @@ namespace Kompresja_Powtórek_GUI
             }
         }
 
+        private void UpdateColorMode()
+        {
+            if (comboBoxColorMode.SelectedIndex == 0)
+            {
+                Application.SetColorMode(SystemColorMode.Classic);
+                return;
+            }
+
+            if (comboBoxColorMode.SelectedIndex == 1)
+            {
+                Application.SetColorMode(SystemColorMode.Dark);
+                return;
+            }
+
+            if (comboBoxColorMode.SelectedIndex == 2)
+            {
+                Application.SetColorMode(SystemColorMode.System);
+                return;
+            }
+        }
+
+        private void UpdateControlsFontSize(Control.ControlCollection controlCollection)
+        {
+            foreach (Control control in controlCollection)
+            {
+                // Odśwież
+                control.Font = new Font(control.Font.FontFamily, (float) numericUpDownFontSize.Value, control.Font.Style);
+
+                // Sprawdź, czy kontrolka ma dzieci
+                if (control.Controls.Count > 0)
+                {
+                    UpdateControlsFontSize(control.Controls);
+                }
+            }
+        }
+
         private void comboBoxResolution_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateResolution();
@@ -380,6 +467,14 @@ namespace Kompresja_Powtórek_GUI
             UpdateEncoder();
         }
 
+        private void comboBoxColorMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBoxColorMode.IsHandleCreated)
+            {
+                MessageBox.Show("Uruchom ponownie, aby zastosować zmiany.", "Tryb kolorów", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
         private void SaveSettings()
         {
             StreamWriter streamWriter = File.CreateText(settingsFile);
@@ -389,8 +484,7 @@ namespace Kompresja_Powtórek_GUI
             streamWriter.WriteLine(comboBoxResolution.SelectedIndex.ToString());
             streamWriter.WriteLine(comboBoxFrameRate.SelectedIndex.ToString());
             streamWriter.WriteLine(comboBoxEncoder.SelectedIndex.ToString());
-            streamWriter.WriteLine(Application.ColorMode);
-            
+            streamWriter.WriteLine(comboBoxColorMode.SelectedIndex.ToString());
 
             streamWriter.Close();
             streamWriter.Dispose();
@@ -411,7 +505,7 @@ namespace Kompresja_Powtórek_GUI
                     if (i == 2) { comboBoxResolution.SelectedIndex = Convert.ToInt32(line); }
                     if (i == 3) { comboBoxFrameRate.SelectedIndex = Convert.ToInt32(line); }
                     if (i == 4) { comboBoxEncoder.SelectedIndex = Convert.ToInt32(line); }
-                    if (i == 5) { Application.SetColorMode((SystemColorMode) Convert.ToInt32(line)); }
+                    if (i == 5) { comboBoxColorMode.SelectedIndex = Convert.ToInt32(line); }
                     i++;
                 }
 
@@ -419,14 +513,14 @@ namespace Kompresja_Powtórek_GUI
                 streamReader.Dispose();
 
                 OutputFolder = textBoxOutputFolder.Text;
+
                 UpdateResolution();
                 UpdateFrameRate();
                 UpdateEncoder();
-              
+                UpdateColorMode();
+                UpdateControlsFontSize(this.Controls);
             }
         }
-
-
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -463,6 +557,11 @@ namespace Kompresja_Powtórek_GUI
         private void textBoxOutputFolder_TextChanged(object sender, EventArgs e)
         {
             OutputFolder = textBoxOutputFolder.Text;
+        }
+
+        private void numericUpDownFontSize_ValueChanged(object sender, EventArgs e)
+        {
+            UpdateControlsFontSize(this.Controls);
         }
     }
 }
