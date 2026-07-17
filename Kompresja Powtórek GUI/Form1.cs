@@ -21,6 +21,9 @@ namespace Kompresja_Powtórek_GUI
         // Klasa FFmpeg
         FFmpeg FFmpeg = new FFmpeg();
 
+        // Klasa Discord
+        Discord Discord = new Discord();
+
         //------------------------------
         // Form1
         //------------------------------
@@ -67,6 +70,8 @@ namespace Kompresja_Powtórek_GUI
                     if (i == 4) { comboBoxEncoder.SelectedIndex = Convert.ToInt32(line); }
                     if (i == 5) { comboBoxColorMode.SelectedIndex = Convert.ToInt32(line); }
                     if (i == 6) { numericUpDownFontSize.Value = Convert.ToInt32(line); }
+                    if (i == 7) { textBoxWebhookURL.Text = line; }
+                    if (i == 8) { comboBoxSendToDiscord.SelectedIndex = Convert.ToInt32(line); }
                     i++;
                 }
 
@@ -80,6 +85,7 @@ namespace Kompresja_Powtórek_GUI
                 UpdateEncoder();
                 UpdateColorMode();
                 UpdateConsoleFontSize();
+                UpdateWebhookURL();
             }
         }
 
@@ -204,6 +210,49 @@ namespace Kompresja_Powtórek_GUI
             {
                 RichTextBoxColor(e.ClipFileName, FontStyle.Bold, Color.Green);
             }
+
+            if (comboBoxSendToDiscord.InvokeRequired)
+            {
+                comboBoxSendToDiscord.Invoke(new Action(() =>
+                {
+                    if (comboBoxSendToDiscord.SelectedIndex == 1)
+                    {
+                        if (textBoxWebhookURL.InvokeRequired)
+                        {
+                            textBoxWebhookURL.Invoke(new Action(() =>
+                            {
+                                Discord.WebhookURL = textBoxWebhookURL.Text;
+                            }));
+                        }
+                        else
+                        {
+                            Discord.WebhookURL = textBoxWebhookURL.Text;
+                        }
+
+                        Discord.Send(e.OutputFilePath, e.OutputFileName);
+                    }
+                }));
+            }
+            else
+            {
+                // Czy wysyłamy na Discorda
+                if (comboBoxSendToDiscord.SelectedIndex == 1)
+                {
+                    if (textBoxWebhookURL.InvokeRequired)
+                    {
+                        textBoxWebhookURL.Invoke(new Action(() =>
+                        {
+                            Discord.WebhookURL = textBoxWebhookURL.Text;
+                        }));
+                    }
+                    else
+                    {
+                        Discord.WebhookURL = textBoxWebhookURL.Text;
+                    }
+
+                    Discord.Send(e.OutputFilePath, e.OutputFileName);
+                }
+            }
         }
 
         private void buttonActivate_Click(object sender, EventArgs e)
@@ -223,6 +272,8 @@ namespace Kompresja_Powtórek_GUI
                 comboBoxResolution.Enabled = false;
                 comboBoxFrameRate.Enabled = false;
                 comboBoxEncoder.Enabled = false;
+                textBoxWebhookURL.Enabled = false;
+                comboBoxSendToDiscord.Enabled = false;
 
                 buttonActivate.Text = "Zatrzymaj";
                 isWatcherActive = true;
@@ -236,6 +287,8 @@ namespace Kompresja_Powtórek_GUI
                 comboBoxResolution.Enabled = true;
                 comboBoxFrameRate.Enabled = true;
                 comboBoxEncoder.Enabled = true;
+                textBoxWebhookURL.Enabled = true;
+                comboBoxSendToDiscord.Enabled = true;
 
                 buttonActivate.Text = "Rozpocznij";
                 isWatcherActive = false;
@@ -481,6 +534,11 @@ namespace Kompresja_Powtórek_GUI
             }
         }
 
+        private void UpdateWebhookURL()
+        {
+            Discord.WebhookURL = textBoxWebhookURL.Text;
+        }
+
         /// <summary>
         /// Znajdź wyrażenie w richtextbox i zmień jego kolor
         /// </summary>
@@ -508,6 +566,8 @@ namespace Kompresja_Powtórek_GUI
             streamWriter.WriteLine(comboBoxEncoder.SelectedIndex.ToString());
             streamWriter.WriteLine(comboBoxColorMode.SelectedIndex.ToString());
             streamWriter.WriteLine(numericUpDownFontSize.Value.ToString());
+            streamWriter.WriteLine(textBoxWebhookURL.Text.ToString());
+            streamWriter.WriteLine(comboBoxSendToDiscord.SelectedIndex.ToString());
 
             streamWriter.Close();
             streamWriter.Dispose();

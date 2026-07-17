@@ -58,6 +58,12 @@
             splitContainerOutput = new SplitContainer();
             groupBox1 = new GroupBox();
             richTextBoxConsole = new RichTextBox();
+            groupBox2 = new GroupBox();
+            tableLayoutPanel3 = new TableLayoutPanel();
+            labelWebhookURL = new Label();
+            textBoxWebhookURL = new TextBox();
+            labelSendToDiscord = new Label();
+            comboBoxSendToDiscord = new ComboBox();
             groupBoxCompresionSettings.SuspendLayout();
             tableLayoutPanelSettings.SuspendLayout();
             groupBoxOutput.SuspendLayout();
@@ -72,6 +78,8 @@
             splitContainerOutput.Panel2.SuspendLayout();
             splitContainerOutput.SuspendLayout();
             groupBox1.SuspendLayout();
+            groupBox2.SuspendLayout();
+            tableLayoutPanel3.SuspendLayout();
             SuspendLayout();
             // 
             // groupBoxCompresionSettings
@@ -275,7 +283,7 @@
             groupBoxOutput.Location = new Point(0, 0);
             groupBoxOutput.Margin = new Padding(10, 5, 10, 10);
             groupBoxOutput.Name = "groupBoxOutput";
-            groupBoxOutput.Size = new Size(364, 259);
+            groupBoxOutput.Size = new Size(364, 56);
             groupBoxOutput.TabIndex = 1;
             groupBoxOutput.TabStop = false;
             groupBoxOutput.Text = "Podgląd";
@@ -294,7 +302,7 @@
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle());
             tableLayoutPanel1.RowStyles.Add(new RowStyle());
-            tableLayoutPanel1.Size = new Size(358, 237);
+            tableLayoutPanel1.Size = new Size(358, 34);
             tableLayoutPanel1.TabIndex = 3;
             // 
             // pictureBoxThumbnail
@@ -303,7 +311,7 @@
             pictureBoxThumbnail.Dock = DockStyle.Fill;
             pictureBoxThumbnail.Location = new Point(3, 3);
             pictureBoxThumbnail.Name = "pictureBoxThumbnail";
-            pictureBoxThumbnail.Size = new Size(352, 187);
+            pictureBoxThumbnail.Size = new Size(352, 1);
             pictureBoxThumbnail.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBoxThumbnail.TabIndex = 0;
             pictureBoxThumbnail.TabStop = false;
@@ -311,7 +319,7 @@
             // progressBarOutput
             // 
             progressBarOutput.Dock = DockStyle.Top;
-            progressBarOutput.Location = new Point(3, 211);
+            progressBarOutput.Location = new Point(3, 8);
             progressBarOutput.Name = "progressBarOutput";
             progressBarOutput.Size = new Size(352, 23);
             progressBarOutput.TabIndex = 1;
@@ -320,7 +328,7 @@
             // 
             labelFileName.AutoSize = true;
             labelFileName.Dock = DockStyle.Top;
-            labelFileName.Location = new Point(3, 193);
+            labelFileName.Location = new Point(3, -10);
             labelFileName.Name = "labelFileName";
             labelFileName.Size = new Size(352, 15);
             labelFileName.TabIndex = 2;
@@ -330,18 +338,20 @@
             // 
             tableLayoutPanelMain.ColumnCount = 1;
             tableLayoutPanelMain.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tableLayoutPanelMain.Controls.Add(groupBox2, 0, 2);
             tableLayoutPanelMain.Controls.Add(groupBoxApplicationSettings, 0, 0);
             tableLayoutPanelMain.Controls.Add(groupBoxCompresionSettings, 0, 1);
-            tableLayoutPanelMain.Controls.Add(splitContainerOutput, 0, 2);
+            tableLayoutPanelMain.Controls.Add(splitContainerOutput, 0, 3);
             tableLayoutPanelMain.Dock = DockStyle.Fill;
             tableLayoutPanelMain.Location = new Point(0, 0);
             tableLayoutPanelMain.Margin = new Padding(0);
             tableLayoutPanelMain.Name = "tableLayoutPanelMain";
-            tableLayoutPanelMain.RowCount = 3;
+            tableLayoutPanelMain.RowCount = 4;
             tableLayoutPanelMain.RowStyles.Add(new RowStyle());
             tableLayoutPanelMain.RowStyles.Add(new RowStyle());
-            tableLayoutPanelMain.RowStyles.Add(new RowStyle(SizeType.Absolute, 100F));
-            tableLayoutPanelMain.Size = new Size(384, 634);
+            tableLayoutPanelMain.RowStyles.Add(new RowStyle());
+            tableLayoutPanelMain.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tableLayoutPanelMain.Size = new Size(384, 828);
             tableLayoutPanelMain.TabIndex = 2;
             // 
             // groupBoxApplicationSettings
@@ -415,7 +425,7 @@
             // 
             splitContainerOutput.Dock = DockStyle.Fill;
             splitContainerOutput.FixedPanel = FixedPanel.Panel2;
-            splitContainerOutput.Location = new Point(10, 282);
+            splitContainerOutput.Location = new Point(10, 377);
             splitContainerOutput.Margin = new Padding(10, 5, 10, 10);
             splitContainerOutput.Name = "splitContainerOutput";
             splitContainerOutput.Orientation = Orientation.Horizontal;
@@ -427,8 +437,8 @@
             // splitContainerOutput.Panel2
             // 
             splitContainerOutput.Panel2.Controls.Add(groupBoxOutput);
-            splitContainerOutput.Size = new Size(364, 342);
-            splitContainerOutput.SplitterDistance = 79;
+            splitContainerOutput.Size = new Size(364, 441);
+            splitContainerOutput.SplitterDistance = 381;
             splitContainerOutput.TabIndex = 3;
             // 
             // groupBox1
@@ -439,7 +449,7 @@
             groupBox1.Margin = new Padding(10, 5, 10, 10);
             groupBox1.Name = "groupBox1";
             groupBox1.Padding = new Padding(7);
-            groupBox1.Size = new Size(364, 79);
+            groupBox1.Size = new Size(364, 381);
             groupBox1.TabIndex = 3;
             groupBox1.TabStop = false;
             groupBox1.Text = "Lista";
@@ -453,15 +463,88 @@
             richTextBoxConsole.Margin = new Padding(10);
             richTextBoxConsole.Name = "richTextBoxConsole";
             richTextBoxConsole.ReadOnly = true;
-            richTextBoxConsole.Size = new Size(350, 49);
+            richTextBoxConsole.Size = new Size(350, 351);
             richTextBoxConsole.TabIndex = 0;
             richTextBoxConsole.Text = "";
+            // 
+            // groupBox2
+            // 
+            groupBox2.AutoSize = true;
+            groupBox2.Controls.Add(tableLayoutPanel3);
+            groupBox2.Dock = DockStyle.Fill;
+            groupBox2.Location = new Point(10, 282);
+            groupBox2.Margin = new Padding(10, 5, 10, 10);
+            groupBox2.MinimumSize = new Size(350, 0);
+            groupBox2.Name = "groupBox2";
+            groupBox2.Size = new Size(364, 80);
+            groupBox2.TabIndex = 4;
+            groupBox2.TabStop = false;
+            groupBox2.Text = "Ustawienia Discorda";
+            // 
+            // tableLayoutPanel3
+            // 
+            tableLayoutPanel3.AutoSize = true;
+            tableLayoutPanel3.ColumnCount = 2;
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel3.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tableLayoutPanel3.Controls.Add(comboBoxSendToDiscord, 1, 1);
+            tableLayoutPanel3.Controls.Add(labelWebhookURL, 0, 0);
+            tableLayoutPanel3.Controls.Add(textBoxWebhookURL, 1, 0);
+            tableLayoutPanel3.Controls.Add(labelSendToDiscord, 0, 1);
+            tableLayoutPanel3.Dock = DockStyle.Fill;
+            tableLayoutPanel3.Location = new Point(3, 19);
+            tableLayoutPanel3.Name = "tableLayoutPanel3";
+            tableLayoutPanel3.RowCount = 2;
+            tableLayoutPanel3.RowStyles.Add(new RowStyle());
+            tableLayoutPanel3.RowStyles.Add(new RowStyle());
+            tableLayoutPanel3.Size = new Size(358, 58);
+            tableLayoutPanel3.TabIndex = 8;
+            // 
+            // labelWebhookURL
+            // 
+            labelWebhookURL.AutoSize = true;
+            labelWebhookURL.Dock = DockStyle.Top;
+            labelWebhookURL.Location = new Point(3, 5);
+            labelWebhookURL.Margin = new Padding(3, 5, 3, 3);
+            labelWebhookURL.Name = "labelWebhookURL";
+            labelWebhookURL.Size = new Size(128, 15);
+            labelWebhookURL.TabIndex = 0;
+            labelWebhookURL.Text = "Adres URL webhooka";
+            // 
+            // textBoxWebhookURL
+            // 
+            textBoxWebhookURL.Dock = DockStyle.Top;
+            textBoxWebhookURL.Location = new Point(137, 3);
+            textBoxWebhookURL.Name = "textBoxWebhookURL";
+            textBoxWebhookURL.Size = new Size(218, 23);
+            textBoxWebhookURL.TabIndex = 3;
+            // 
+            // labelSendToDiscord
+            // 
+            labelSendToDiscord.AutoSize = true;
+            labelSendToDiscord.Dock = DockStyle.Top;
+            labelSendToDiscord.Location = new Point(3, 34);
+            labelSendToDiscord.Margin = new Padding(3, 5, 3, 3);
+            labelSendToDiscord.Name = "labelSendToDiscord";
+            labelSendToDiscord.Size = new Size(128, 15);
+            labelSendToDiscord.TabIndex = 1;
+            labelSendToDiscord.Text = "Wyślij na kanał Discord";
+            // 
+            // comboBoxSendToDiscord
+            // 
+            comboBoxSendToDiscord.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboBoxSendToDiscord.FormattingEnabled = true;
+            comboBoxSendToDiscord.Items.AddRange(new object[] { "Nie", "Tak" });
+            comboBoxSendToDiscord.Location = new Point(137, 32);
+            comboBoxSendToDiscord.Name = "comboBoxSendToDiscord";
+            comboBoxSendToDiscord.Size = new Size(121, 23);
+            comboBoxSendToDiscord.TabIndex = 8;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(384, 634);
+            ClientSize = new Size(384, 828);
             Controls.Add(tableLayoutPanelMain);
             MinimumSize = new Size(400, 500);
             Name = "Form1";
@@ -487,6 +570,10 @@
             ((System.ComponentModel.ISupportInitialize)splitContainerOutput).EndInit();
             splitContainerOutput.ResumeLayout(false);
             groupBox1.ResumeLayout(false);
+            groupBox2.ResumeLayout(false);
+            groupBox2.PerformLayout();
+            tableLayoutPanel3.ResumeLayout(false);
+            tableLayoutPanel3.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -522,5 +609,11 @@
         private SplitContainer splitContainerOutput;
         private GroupBox groupBox1;
         private RichTextBox richTextBoxConsole;
+        private GroupBox groupBox2;
+        private TableLayoutPanel tableLayoutPanel3;
+        private ComboBox comboBoxSendToDiscord;
+        private Label labelWebhookURL;
+        private TextBox textBoxWebhookURL;
+        private Label labelSendToDiscord;
     }
 }

@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Drawing.Imaging;
-using System.Linq.Expressions;
-using System.Text;
-using static Kompresja_Powtórek_GUI.Form1;
+﻿using System.Diagnostics;
 
 namespace Kompresja_Powtórek_GUI
 {
@@ -62,7 +55,8 @@ namespace Kompresja_Powtórek_GUI
             // Nazwa pliku po zmianie rozszerzenia na ".mp4"
             string clipFileNameWihoutExtension = clipFileName.Substring(0, clipFileNameLength - 4);
 
-            string outputFilePath = $"{OutputFolder}\\{clipFileNameWihoutExtension} ({ResolutionName}, {FrameRate} FPS).mp4";
+            string outputFileName = $"{clipFileNameWihoutExtension} ({ResolutionName}, {FrameRate} FPS).mp4";
+            string outputFilePath = $"{OutputFolder}\\{outputFileName}";
             string thumbnailFilePath = $"{OutputFolder}\\{clipFileNameWihoutExtension}.png";
 
             int frameCount;
@@ -101,6 +95,8 @@ namespace Kompresja_Powtórek_GUI
 
             VideoCreatedEventArgs eVideo = new VideoCreatedEventArgs();
             eVideo.ClipFileName = clipFileName;
+            eVideo.OutputFilePath = outputFilePath;
+            eVideo.OutputFileName = outputFileName;
             eVideo.FrameCount = frameCount;
             OnVideoCreated(eVideo);
         }
@@ -177,8 +173,10 @@ namespace Kompresja_Powtórek_GUI
         }
         public class VideoCreatedEventArgs : EventArgs
         {
-            // Nazwa klipu, dla którego utworzono miniaturę
             public string ClipFileName { get; set; }
+
+            public string OutputFilePath { get; set; }
+            public string OutputFileName { get; set; }
             public int FrameCount { get; set; }
         }
 
