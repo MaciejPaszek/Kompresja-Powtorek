@@ -2,8 +2,46 @@
 
 namespace Kompresja_Powtórek_GUI
 {
+    struct Option
+    {
+        public Option(string name, string value)
+        {
+            Name = name;
+            Value = value;
+        }
+
+        public string Name;
+        public string Value;
+    }
+
     internal class FFmpeg
     {
+        public const bool CreateNoWindow = true;
+
+        public static readonly Option[] FileFormats = {
+            new Option("*.mkv", "mkv"),
+            new Option("*.mp4", "mp4")
+        };
+
+        public static readonly Option[] Resolutions = {
+            new Option("144p",  "256x144"),
+            new Option("240p",  "427x240"),
+            new Option("360p",  "640x360"),
+            new Option("480p",  "854x480"),
+            new Option("720p", "1280x720")
+        };
+
+        public static readonly Option[] FrameRates = {
+            new Option("24 FPS", "24"),
+            new Option("30 FPS", "30"),
+            new Option("60 FPS", "60")
+        };
+
+        public static readonly Option[] Encoders = {
+            new Option("CPU", "libx264"),
+            new Option("GPU", "h264_nvenc")
+        };
+
         public FFmpeg()
         {
             // Obsługa zdarzenia dodaj klip
@@ -59,22 +97,28 @@ namespace Kompresja_Powtórek_GUI
             string outputFilePath = $"{OutputFolder}\\{outputFileName}";
             string thumbnailFilePath = $"{OutputFolder}\\{clipFileNameWihoutExtension}.png";
 
+            int exitCode = 0;
+
             int frameCount;
 
-            if(!CountFrames(clipFilePath, out frameCount))
+            exitCode = CountFrames(clipFilePath, out frameCount);
+
+            if(exitCode != 0)
             {
                 FFmpegErrorEventArgs err = new FFmpegErrorEventArgs();
                 err.ClipFileName = clipFileName;
-                err.ErrorMessage = "FFprobe: Nie można wyznaczyć liczby klatek.";
+                err.ErrorMessage = $"Plik jest uszkodzony (FFprobe exit code: {exitCode})";
                 OnFFmpegError(err);
                 return;
             }
 
-            if(!CreateThumbnail(clipFilePath, thumbnailFilePath))
+            exitCode = CreateThumbnail(clipFilePath, thumbnailFilePath);
+
+            if (exitCode != 0)
             {
                 FFmpegErrorEventArgs err = new FFmpegErrorEventArgs();
                 err.ClipFileName = clipFileName;
-                err.ErrorMessage = "FFMpeg: Nie można utworzyć miniatury.";
+                err.ErrorMessage = $"Nie można utworzyć miniatury. (FFmpeg exit code: {exitCode})";
                 OnFFmpegError(err);
                 return;
             }
@@ -84,11 +128,13 @@ namespace Kompresja_Powtórek_GUI
             eThumbnail.ThumbnailFilePath = thumbnailFilePath;
             OnThumbnailCreated(eThumbnail);
 
-            if (!CreateVideo(clipFilePath, clipFileName, outputFilePath, frameCount))
+            exitCode = CreateVideo(clipFilePath, clipFileName, outputFilePath, frameCount);
+
+            if (exitCode != 0)
             {
                 FFmpegErrorEventArgs err = new FFmpegErrorEventArgs();
                 err.ClipFileName = clipFileName;
-                err.ErrorMessage = "FFMpeg: Błąd filmu.";
+                err.ErrorMessage = $"Nie można utworzyć klipu (FFmpeg exit code: {exitCode})";
                 OnFFmpegError(err);
                 return;
             }
@@ -206,7 +252,7 @@ namespace Kompresja_Powtórek_GUI
             VideoCreated?.Invoke(this, e);
         }
 
-        public bool CountFrames(string inputFile, out int frameCount)
+        public int CountFrames(string inputFile, out int frameCount)
         {
             // Proces FFprobe do liczenia klatek filmu
             Process countProcess = new Process();
@@ -217,7 +263,7 @@ namespace Kompresja_Powtórek_GUI
             countProcess.StartInfo.UseShellExecute = false;
 
             // Otwórz terminal bez tworzenia okna
-            countProcess.StartInfo.CreateNoWindow = true;
+            countProcess.StartInfo.CreateNoWindow = CreateNoWindow;
 
             // Włącz logowanie wyjścia
             countProcess.StartInfo.RedirectStandardOutput = true;
@@ -244,19 +290,19 @@ namespace Kompresja_Powtórek_GUI
             catch
             {
                 frameCount = 0;
-                return false;
+                return -1;
             }
 
             // Sprawdzenie, czy nastąpił błąd
             if (exitCode != 0)
             {
-                return false;
+                return exitCode;
             }
 
-            return true;
+            return 0;
         }
 
-        public bool CreateThumbnail(string inputFilePath, string thumbnailFilePath)
+        public int CreateThumbnail(string inputFilePath, string thumbnailFilePath)
         {
             // Proces FFmpeg do tworzenia miniatury
             Process thumbnailProcess = new Process();
@@ -269,7 +315,7 @@ namespace Kompresja_Powtórek_GUI
             thumbnailProcess.StartInfo.UseShellExecute = false;
 
             // Otwórz terminal bez tworzenia okna
-            thumbnailProcess.StartInfo.CreateNoWindow = true;
+            thumbnailProcess.StartInfo.CreateNoWindow = CreateNoWindow;
 
             // Rozpoczęcie procesu
             thumbnailProcess.Start();
@@ -285,13 +331,13 @@ namespace Kompresja_Powtórek_GUI
             // Sprawdzenie, czy nastąpił błąd
             if (exitCode != 0)
             {
-                return false;
+                return exitCode;
             }
 
-            return true;
+            return 0;
         }
 
-        public bool CreateVideo(string inputFilePath, string clipFileName, string outputFilePath, int frameCount)
+        public int CreateVideo(string inputFilePath, string clipFileName, string outputFilePath, int frameCount)
         {
             // Proces FFmpeg
             Process videoProcess = new Process();
@@ -302,7 +348,7 @@ namespace Kompresja_Powtórek_GUI
             videoProcess.StartInfo.UseShellExecute = false;
 
             // Otwórz terminal bez tworzenia okna
-            videoProcess.StartInfo.CreateNoWindow = true;
+            videoProcess.StartInfo.CreateNoWindow = CreateNoWindow;
 
             // Włącz logowanie wyjścia
             videoProcess.StartInfo.RedirectStandardOutput = true;
@@ -341,7 +387,7 @@ namespace Kompresja_Powtórek_GUI
                         }
                         catch
                         {
-                            return false;
+                            return -1;
                         }
 
                         // Zapal Event Progress
@@ -365,10 +411,10 @@ namespace Kompresja_Powtórek_GUI
             // Sprawdzenie, czy nastąpił błąd
             if (exitCode != 0)
             {
-                return false;
+                return exitCode;
             }
 
-            return true;
+            return 0;
         }
     }
 }

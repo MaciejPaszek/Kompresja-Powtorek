@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using static Kompresja_Powtórek_GUI.FFmpeg;
 
 namespace Kompresja_Powtórek_GUI
 {
@@ -9,13 +10,41 @@ namespace Kompresja_Powtórek_GUI
 
         }
 
+        public event EventHandler<ClipSentEventArgs>? ClipSent;
+
+        public class ClipSentEventArgs : EventArgs
+        {
+            public string ClipFileName { get; set; }
+        }
+
+        protected virtual void OnClipSent(ClipSentEventArgs e)
+        {
+            ClipSent?.Invoke(this, e);
+        }
+
+        public event EventHandler<DiscordErrorEventArgs>? DiscordError;
+
+        public class DiscordErrorEventArgs : EventArgs
+        {
+            public string ClipFileName { get; set; }
+            public string ErrorMessage { get; set; }
+        }
+
+        protected virtual void OnDiscordError(DiscordErrorEventArgs e)
+        {
+            DiscordError?.Invoke(this, e);
+        }
+
         public string WebhookURL = string.Empty;
 
-        public async void Send(string outputFilePath, string outputFileName)
+        public async void Send(string clipFileName, string outputFilePath, string outputFileName)
         {
             if (WebhookURL == null || WebhookURL == string.Empty)
             {
-                MessageBox.Show("Webhook jest pusty");
+                DiscordErrorEventArgs err = new DiscordErrorEventArgs();
+                err.ClipFileName = clipFileName;
+                err.ErrorMessage = "Discord: Webhook jest pusty.";
+                OnDiscordError(err);
                 return;
             }
 
@@ -23,7 +52,10 @@ namespace Kompresja_Powtórek_GUI
             {
                 if (!File.Exists(outputFilePath))
                 {
-                    MessageBox.Show("Nie znaleziono pliku video.mp4");
+                    DiscordErrorEventArgs err = new DiscordErrorEventArgs();
+                    err.ClipFileName = clipFileName;
+                    err.ErrorMessage = "Discord: Klip nie istnieje.";
+                    OnDiscordError(err);
                     return;
                 }
 
@@ -48,19 +80,31 @@ namespace Kompresja_Powtórek_GUI
 
                 if (response.IsSuccessStatusCode)
                 {
+                    ClipSentEventArgs e = new ClipSentEventArgs();
+                    e.ClipFileName = clipFileName;
+                    OnClipSent(e);
                     //MessageBox.Show("Film został wysłany.");
                 }
                 else
                 {
                     string error = await response.Content.ReadAsStringAsync();
 
-                    MessageBox.Show(
-                        $"Błąd:\n{response.StatusCode}\n\n{error}");
+                    DiscordErrorEventArgs err = new DiscordErrorEventArgs();
+                    err.ClipFileName = clipFileName;
+                    err.ErrorMessage = "HTTP {response.StatusCode}: {error}.";
+                    OnDiscordError(err);
+
+                    //MessageBox.Show(
+                    //    $"Błąd:\n{response.StatusCode}\n\n{error}");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                DiscordErrorEventArgs err = new DiscordErrorEventArgs();
+                err.ClipFileName = clipFileName;
+                err.ErrorMessage = ex.Message;
+                OnDiscordError(err);
+                //MessageBox.Show(ex.Message);
             }
         }
     }
