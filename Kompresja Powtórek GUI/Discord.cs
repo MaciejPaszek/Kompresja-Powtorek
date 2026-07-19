@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Headers;
-using static Kompresja_Powtórek_GUI.FFmpeg;
+using static DiscordClipper.FFmpeg;
 
-namespace Kompresja_Powtórek_GUI
+namespace DiscordClipper
 {
     internal class Discord
     {
