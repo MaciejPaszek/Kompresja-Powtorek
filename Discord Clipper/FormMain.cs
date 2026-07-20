@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Kompresja_Powtórek_GUI
+namespace DiscordClipper
 {
     public partial class FormMain : Form
     {

@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Kompresja_Powtórek_GUI
+namespace DiscordClipper
 {
     struct Option
     {

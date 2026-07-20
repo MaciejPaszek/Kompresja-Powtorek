@@ -1,4 +1,4 @@
-﻿namespace Kompresja_Powtórek_GUI
+﻿namespace DiscordClipper
 {
     partial class FormMain
     {
@@ -187,7 +187,7 @@
             buttonActivate.TabIndex = 7;
             buttonActivate.Text = "Rozpocznij monitorowanie";
             buttonActivate.UseVisualStyleBackColor = true;
-            buttonActivate.Click += this.ButtonActivate_Click;
+            buttonActivate.Click += ButtonActivate_Click;
             // 
             // splitContainerOutput
             // 

@@ -1,4 +1,4 @@
-namespace Kompresja_Powtórek_GUI
+namespace DiscordClipper
 {
     internal static class Program
     {
