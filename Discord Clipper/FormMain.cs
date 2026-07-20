@@ -8,13 +8,14 @@ namespace DiscordClipper
          * Obiekty Globalne
          *******************************************************/
 
-        const string SettingsFilePath = "settings.txt"; 
+        const string SettingsFilePath = "settings.txt";
 
         // Okno ustawień
         FormSettings? FormSettings;
 
         // Monitorowanie folderu
         FileSystemWatcher? FileSystemWatcher;
+
         // Czy monitorowanie plików jest aktywne
         private bool isWatcherActive = false;
 
